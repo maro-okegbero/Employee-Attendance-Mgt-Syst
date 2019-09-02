@@ -1,4 +1,4 @@
-from typing import Any, Union
+
 
 from pymongo.write_concern import WriteConcern
 from pymodm import MongoModel, fields
@@ -7,27 +7,27 @@ from pymodm.connection import connect
 connect("mongodb://localhost:27017/myDatabase")
 
 
-class Employee(MongoModel):
+class User(MongoModel):
     email = fields.EmailField(primary_key=True)
-    first_name = fields.CharField()
-    last_name = fields.CharField()
-    role = fields.CharField()
-    password = fields.CharField()
+    first_name = fields.CharField(required=True)
+    last_name = fields.CharField(required=True)
+    phone_number = fields.CharField(required=True,max_length=14)
+    address = fields.CharField(required=True)
+    employee = fields.BooleanField(default=True)
+    role = fields.CharField(required=False, blank=True)
+    password = fields.CharField(blank=True)
     timestamps = fields.ListField()
+
+    #def clean(self):
 
     @property
     def stats(self):
         """this will return the quick stats about an employees attendance habits"""
 
         n = len(self.timestamps)
-        inhsH = 0
-        inhsM = 0
-        inhsS = 0
-        outhsH = 0
-        outhsM = 0
-        outhsS = 0
+        inhsH,inhsM,inhsS,outhsH, outhsM, outhsS = 0
         for time in self.timestamps:
-            login_times = time['login_time']#
+            login_times = time['login_time']
             hs = login_times.time()
             inhsH += hs.hour
             hsHA = inhsH//n
@@ -35,8 +35,7 @@ class Employee(MongoModel):
             hsMA = inhsM//n
             inhsS += hs.second
             hsSA = inhsS//n
-
-            logout_times = time['logout_time']  #
+            logout_times = time['logout_time']
             ouths = logout_times.time()
             outhsH += ouths.hour
             outhsHA = outhsH // n
@@ -51,14 +50,13 @@ class Employee(MongoModel):
         return statistics
 
 
-
-
-
 class TimeStamp(MongoModel):
-    employee = fields.ReferenceField(Employee)
+    user = fields.ReferenceField(User)
     date = fields.CharField(primary_key=True)
     login_time = fields.DateTimeField()
     logout_time = fields.DateTimeField()
+    purpose_of_visit = fields.CharField(default='Work')
+
 
     def __str__(self):
         return self.first_name + ' ' + self.last_name + ' ' + ' - ' + self.role
