@@ -6,13 +6,13 @@ from marshmallow import ValidationError
 from schemas import GuestSchema, EmployeeSchema, SignOutSchema, SignInSchema
 
 
-
-class SignIn(object):  # Resource for logging users into the system
+class SignIn:  # Resource for logging users into the system
 
     def myconverter(self, o):
         print(o)
         if isinstance(o, datetime):
             return o.__str__()
+
     @classmethod
     def login(cls, email=None, password=None):
         arrival_time = datetime.now()
@@ -52,10 +52,11 @@ class SignIn(object):  # Resource for logging users into the system
             raise falcon.HTTPError("409", title="Validation Error", description=str(err))
 
 
-class SignupEmployee(object):  # Resource for registering employees into the database
+class SignupEmployee:  # Resource for registering employees into the database
     def myconverter(self, o):
-        if isinstance(o, datetime.datetime):
+        if isinstance(o, datetime):
             return o.__str__()
+
     @classmethod
     def signup(cls, email=None, firstname=None, lastname=None, phonenumber=None, address=None, employee=None, role=None,
                password=None, **kwargs):
@@ -76,7 +77,7 @@ class SignupEmployee(object):  # Resource for registering employees into the dat
             raise falcon.HTTPError("409", title="Validation Error", description=str(err))
 
 
-class SignupGuest(object):  # Resource for registering guests into the database
+class SignupGuest:  # Resource for registering guests into the database
 
     def myconverter(self, o):
         if isinstance(o, datetime.datetime):
@@ -103,7 +104,7 @@ class SignupGuest(object):  # Resource for registering guests into the database
             raise falcon.HTTPError('409 ', title="Validation Failed", description=str(err))
 
 
-class SignOut(object):  # Resource for logging users out of the system
+class SignOut:  # Resource for logging users out of the system
     @classmethod
     def logout(cls, pov=None, email=None):
         try:

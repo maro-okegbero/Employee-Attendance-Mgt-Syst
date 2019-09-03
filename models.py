@@ -1,5 +1,3 @@
-
-
 from pymongo.write_concern import WriteConcern
 from pymodm import MongoModel, fields
 from pymodm.connection import connect
@@ -11,42 +9,42 @@ class User(MongoModel):
     email = fields.EmailField(primary_key=True)
     first_name = fields.CharField(required=True)
     last_name = fields.CharField(required=True)
-    phone_number = fields.CharField(required=True,max_length=14)
+    phone_number = fields.CharField(required=True, max_length=14)
     address = fields.CharField(required=True)
     employee = fields.BooleanField(default=True)
     role = fields.CharField(required=False, blank=True)
     password = fields.CharField(blank=True)
     timestamps = fields.ListField()
 
-    #def clean(self):
-
     @property
     def stats(self):
         """this will return the quick stats about an employees attendance habits"""
 
+        global login_hours_average, login_minutes_average, login_seconds_average, logout_minutes_average, logout_hours_average, logout_seconds_average
         n = len(self.timestamps)
-        inhsH,inhsM,inhsS,outhsH, outhsM, outhsS = 0
+        login_hours, login_minutes, login_seconds, logout_hours, logout_minutes, logout_seconds = 0
         for time in self.timestamps:
             login_times = time['login_time']
-            hs = login_times.time()
-            inhsH += hs.hour
-            hsHA = inhsH//n
-            inhsM += hs.minute
-            hsMA = inhsM//n
-            inhsS += hs.second
-            hsSA = inhsS//n
+            login_hour_second_minute = login_times.time()
+            login_hours += login_hour_second_minute.hour
+            login_hours_average = login_hours // n
+            login_minutes += login_hour_second_minute.minute
+            login_minutes_average = login_minutes // n
+            login_seconds += login_hour_second_minute.second
+            login_seconds_average = login_seconds // n
             logout_times = time['logout_time']
-            ouths = logout_times.time()
-            outhsH += ouths.hour
-            outhsHA = outhsH // n
-            outhsM += ouths.minute
-            outhsMA = outhsM // n
-            outhsS += ouths.second
-            outhsSA = outhsS // n
+            logout_hour_second_minute = logout_times.time()
+            logout_hours += logout_hour_second_minute.hour
+            logout_hours_average = logout_hours // n
+            logout_minutes += logout_hour_second_minute.minute
+            logout_minutes_average = logout_minutes // n
+            logout_seconds += logout_hour_second_minute.second
+            logout_seconds_average = logout_seconds // n
 
-        Average_login = str(hsHA) + ':' + str(hsMA) + ':' + str(hsSA)
-        Average_logout = str(outhsHA) + ':' + str(outhsMA) + ':' + str(outhsSA)
-        statistics = {'Average login_time': Average_login, 'Average logout_time' : Average_logout}
+        average_login = str(login_hours_average) + ':' + str(login_minutes_average) + ':' + str(login_seconds_average)
+        average_logout = str(logout_hours_average) + ':' + str(logout_minutes_average) + ':' + str \
+            (logout_seconds_average)
+        statistics = {'Average login_time': average_login, 'average logout_time': average_logout}
         return statistics
 
 
@@ -56,7 +54,6 @@ class TimeStamp(MongoModel):
     login_time = fields.DateTimeField()
     logout_time = fields.DateTimeField()
     purpose_of_visit = fields.CharField(default='Work')
-
 
     def __str__(self):
         return self.first_name + ' ' + self.last_name + ' ' + ' - ' + self.role
