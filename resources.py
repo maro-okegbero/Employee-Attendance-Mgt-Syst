@@ -1,141 +1,110 @@
-import falcon
-import json
-from models import User, TimeStamp
-from datetime import datetime
-from marshmallow import ValidationError
-from schemas import GuestSchema, EmployeeSchema, SignOutSchema, SignInSchema
+from falcon.status_codes import HTTP_501
+from sendbox_core.integrations.falcon_integration.errors import BaseError
+from sendbox_core.integrations.falcon_integration.falcon_restful import BaseResource
+
+from employee_attendance_mgt_syst.models import User
+from schemas import SignUpSchema, SignOutSchema, SignInSchema, SignInResponseSchema, SignOutResponseSchema, \
+    AdminViewSchema, AdminViewResponseSchema, UpdatedInfoSchema, UpdateInfoSchema
+from falcon import HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_IMPLEMENTED
 
 
-class SignIn:  # Resource for logging users into the system
+class Signup(BaseResource):
+    serializers = {
+        "default": SignUpSchema,
+        "response": SignUpSchema
+    }
 
-    def myconverter(self, o):
-        print(o)
-        if isinstance(o, datetime):
-            return o.__str__()
+    def on_get(self, req, res, obj_id=None, resource_name=None):
 
-    @classmethod
-    def login(cls, email=None, password=None):
-        arrival_time = datetime.now()
-        arrival_day = arrival_time.strftime("%d %B, %Y")
-        try:
-            login_user = User.objects.get({"_id": email})
-            if not login_user.employee:
-                login_user.timestamps.append({'date': arrival_day, 'login_time': arrival_time})
-                login_user.save()
-                guest_output = login_user.to_son().to_dict()
-                return guest_output
-            else:
-                if password == login_user.password:
-                    login_user.timestamps.append({'date': arrival_day, 'login_time': arrival_time})
-                    login_user.save()
-                    employee_output = login_user.to_son().to_dict()
-                    return employee_output
-                else:
-                    error_result = {'error_result': 'The password is incorrect'}
-                    return error_result
-        except User.DoesNotExist:
-            no_user = {'Error_Result': 'No user with that email'}
-            return no_user
+        raise Exception(HTTP_NOT_IMPLEMENTED)
 
-    def on_post(self, req, resp):  # responder
-        resp.status = falcon.HTTP_200
-        data = json.loads(req.stream.read())
-        input_data = SignInSchema
-        try:
-            data = input_data().load(data=data)
-            output = self.login(**data)
-            print(type(output), '==============================================================')
-            resp.body = json.dumps(output, default=self.myconverter)
-        except ValidationError as err:
-            print(err, "======================>")
+    def save(self, data, user_context, req):
+        """
 
-            raise falcon.HTTPError("409", title="Validation Error", description=str(err))
+        :param data:
+        :param user_context:
+        :param req:
+        :return: Fresh object created
+        """
+
+        return self.service_class.register_user(**data)
 
 
-class SignupEmployee:  # Resource for registering employees into the database
-    def myconverter(self, o):
-        if isinstance(o, datetime):
-            return o.__str__()
+class SignIn(BaseResource):
+    serializers = {
+        "default": SignInSchema,
+        "response": SignInResponseSchema,
+        # "update": UpdateInfoSchema,
+        # "update_response": UpdatedInfoSchema
+    }
 
-    @classmethod
-    def signup(cls, email=None, firstname=None, lastname=None, phonenumber=None, address=None, employee=None, role=None,
-               password=None, **kwargs):
-        new_user = User(email, firstname, lastname, phonenumber, address, employee, role, password).save()
-        your_user = new_user.to_son().to_dict()
-        return your_user
+    def on_get(self, req, res, obj_id=None, resource_name=None):
+        raise BaseError(HTTP_501, dict(message="Http_Method_Not_implemented", name="Are you a Scammer?!"))
 
-    def on_post(self, req, resp):  # responder
-        resp.status = falcon.HTTP_200
-        data = json.loads(req.stream.read())
-        user = EmployeeSchema
-        try:
-            data = user().load(data=data)
-            output = self.signup(**data, employee=True)
-            resp.body = json.dumps(output, default=self.myconverter)
-        except ValidationError as err:
-            print(err, "======================>")
-            raise falcon.HTTPError("409", title="Validation Error", description=str(err))
+    def save(self, data, user_context, req):
+        """
+        :param data:
+        :param user_context:
+        :param req:
+        :return:
+        """
 
 
-class SignupGuest:  # Resource for registering guests into the database
-
-    def myconverter(self, o):
-        if isinstance(o, datetime.datetime):
-            return o.__str__()
-
-    @classmethod
-    def signup(cls, email=None, firstname=None, lastname=None, phonenumber=None, address=None, employee=None, role=None,
-               password=None, **kwargs):
-
-        new_user = User(email, firstname, lastname, phonenumber, address, employee, role, password).save()
-        your_user = new_user.to_son().to_dict()
-        return your_user
-
-    def on_post(self, req, resp):  # responder
-        resp.status = falcon.HTTP_200
-        data = json.loads(req.stream.read())
-        user = GuestSchema
-        try:
-            data = user().load(data=data)
-            output = self.signup(**data, employee=False)
-            resp.body = json.dumps(output)
-        except ValidationError as err:
-            print(err)
-            raise falcon.HTTPError('409 ', title="Validation Failed", description=str(err))
+        return self.service_class.login_user(**data)
 
 
-class SignOut:  # Resource for logging users out of the system
-    @classmethod
-    def logout(cls, pov=None, email=None):
-        try:
-            departure_time = datetime.now()
-            arrival_day = departure_time.strftime("%d %B, %Y")
-            user = User.objects.get({"_id": email})
-            if not user.employee:
-                # user.timestamps.append({'date': arrival_day, 'logout_time': departure_time})
-                user_timestamps = user.timestamps
-                lastentry_of_user_timestamps = len(user_timestamps) - 1
-                user_timestamps[lastentry_of_user_timestamps].update(logout_time=departure_time, purpose_of_visit=pov)
-                user.save()
-                return {'status': '200 Success Baby!',
-                        'description': 'You are Logged out. Peace!'}
-            else:
-                user_timestamps = user.timestamps
-                lastentry_of_user_timestamps = len(user_timestamps) - 1
-                user_timestamps[lastentry_of_user_timestamps].update(logout_time=departure_time)
-                user.save()
-        except ValueError:
-            return {'status': '40Error',
-                    'description': 'Value error bro. Fix it!'}
+class SignOut(BaseResource):
+    serializers = {
+        "default": SignOutSchema,
+        "response": SignOutResponseSchema
+    }
 
-    def on_post(self, req, resp):  # responder
-        resp.status = falcon.HTTP_200
-        data = json.loads(req.stream.read())
-        input_data = SignOutSchema
-        try:
-            data = input_data().load(data=data)
-            log_you_out = self.logout(**data)
-            resp.body = json.dumps(log_you_out)
-        except ValidationError as err:
-            print(err)
-            raise falcon.HTTPError('409 ', title="Validation Failed", description=str(err))
+    def on_get(self, req, res, obj_id=None, resource_name=None):
+        raise BaseException(HTTP_METHOD_NOT_ALLOWED)
+
+    def save(self, data, user_context, req):
+        """
+        :param data:
+        :param user_context:
+        :param req:
+        :return:
+        """
+
+        return self.service_class.logout_user(**data)
+
+
+
+
+class UserResource(BaseResource):
+    """
+    The user resource to manage communication to all users
+    """
+    serializers = {
+        "default": UpdateInfoSchema,
+        "response": UpdatedInfoSchema
+    }
+
+    def snooze(self, obj_id, data, user_context, req):
+        """
+
+        :param obj_id:
+        :param data:
+        :param user_context:
+        :param req:
+        :return:
+        """
+        return self.service_class.snooze(obj_id, **data)
+
+        pass
+
+    def limit_query(self, query, **kwargs):
+        """limit the results of a query to what want the user to see"""
+
+        user_context = kwargs.get("user_context")
+        req = kwargs.get("req")
+        profile_id = user_context.get("profile", {}).get("id")
+        print user_context, profile_id, "this is the check"
+        raw_query = {'_id': profile_id} if profile_id else {}
+        return query.raw(raw_query)
+
+

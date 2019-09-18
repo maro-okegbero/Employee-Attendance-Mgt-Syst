@@ -1,0 +1,5 @@
+API_BASE = ''
+JWT_SECRET_KEY = '123456'
+OPEN_APP = ''
+JWT_AUDIENCE_CLAIM = 'employee_attendance_mgt_syst'
+JWT_ISSUER_CLAIM = 'employee_attendance_mgt_syst'

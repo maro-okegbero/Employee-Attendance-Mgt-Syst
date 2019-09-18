@@ -1,30 +1,39 @@
-from resources import SignIn, SignupEmployee, SignupGuest, SignOut
-from waitress import serve
+from sendbox_core.integrations.falcon_integration.falcon_middleware import *
+from sendbox_core.integrations.falcon_integration.utils import register_api
+
+from employee_attendance_mgt_syst.resources import *
+from employee_attendance_mgt_syst.services import UserService
+
+import settings
 import falcon
 
 
-app = falcon.API()
+
+
+application = falcon.API(middleware=[AuthenticateMiddleware(['/signup', '/login'], settings),
+                                     RequestResponseMiddleware(domain="employee_attendance_mgt_syst"),
+                                     QueryParamsMiddleware()])
+
+
 
 # Resources represented by long-lived class instances
-SignIn = SignIn()
-SignUp_Employee = SignupEmployee()
-SignUp_Guest = SignupGuest()
-Sign_Out = SignOut()
+# SignIn = SignIn()
+register = Signup(UserService, Signup.serializers)
+login = SignIn(UserService, SignIn.serializers)
+logout = SignOut(UserService, SignOut.serializers)
+users = UserResource(UserService, UserResource.serializers)
+# adminPage = AdminView(UserService, AdminView.serializers)
 
-
-#  routes will handle all requests to  '/login', '/signup_employee', '/signup_guest' and '/sign_out' URL path
-app.add_route('/login', SignIn)
-app.add_route('/signup_employee', SignUp_Employee)
-app.add_route('/signup_guest', SignUp_Guest)
-app.add_route('/sign_out', Sign_Out)
-
-
-
-
-
-
-if __name__ == "__main__":
-    # httpd = simple_server.make_server('localhost', 8000, app)
-    # print("srever running on ", httpd.server_address)
-    # httpd.serve_forever()
-    serve(app, listen="*:8000")
+# application.add_route('/login', SignIn)
+# application.add_error_handler(ObjectNotFoundException, ObjectNotFoundError.handler)
+# application.add_error_handler(TypeError, MissingArgumentError.handler)
+# application.add_error_handler(MissingArgumentException, MissingArgumentError.handler)
+# application.add_error_handler(ActionFailedException, ActionFailedError.handler)
+# # application.add_route('/signup', register)
+# application.add_route('/logout', logout)
+# application.add_route('/AdminPage', adminPage)
+register_api(application, register, '/signup')
+register_api(application, logout, '/logout')
+# register_api(application, adminPage, '/AdminPage')
+register_api(application, login, '/login', '/login/{obj_id}/{resource_name}')
+register_api(application, users, '/users', '/users/{obj_id}', '/users/{obj_id}/{resource_name}')
